@@ -103,23 +103,25 @@ export default function RootLayout({
             }),
           }}
         />
+
+        {/* ====== Google Analytics (gtag.js) ====== */}
+        <script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-6NKN570X46"
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-6NKN570X46');
+            `,
+          }}
+        />
       </head>
       <GA4 />
       <body className="min-h-screen flex flex-col bg-slate-900 text-slate-100 font-[family-name:var(--font-geist-sans)]">
-        {/* ====== Google Analytics (gtag.js) ====== */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-6NKN570X46"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-6NKN570X46');
-          `}
-        </Script>
-
         {children}
       </body>
     </html>
