@@ -1,3 +1,5 @@
+import Script from 'next/script';
+import GA4 from "./components/GA4";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -102,7 +104,22 @@ export default function RootLayout({
           }}
         />
       </head>
+      <GA4 />
       <body className="min-h-screen flex flex-col bg-slate-900 text-slate-100 font-[family-name:var(--font-geist-sans)]">
+        {/* ====== Google Analytics (gtag.js) ====== */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-6NKN570X46"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-6NKN570X46');
+          `}
+        </Script>
+
         {children}
       </body>
     </html>
