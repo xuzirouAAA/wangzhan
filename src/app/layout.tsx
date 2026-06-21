@@ -1,4 +1,3 @@
-import Script from 'next/script';
 import GA4 from "./components/GA4";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -78,7 +77,8 @@ export default function RootLayout({
                   acceptedAnswer: {
                     "@type": "Answer",
                     text: "Yes, this TikTok audio downloader is completely free to use. There are no hidden charges, no registration requirements, and no daily limits on the number of downloads. We support the service through advertisements.",
-                  },                },
+                  },
+                },
                 {
                   "@type": "Question",
                   name: "Can I cut or trim the TikTok BGM online?",
@@ -92,19 +92,21 @@ export default function RootLayout({
           }}
         />
 
-        {/* ====== 强行在 head 里注入 Google 统计脚本 ====== */}
-        <Script
+        {/* ====== 强行使用原生纯 HTML 标签注入 Google 统计脚本 ====== */}
+        <script
+          async
           src="https://www.googletagmanager.com/gtag/js?id=G-6NKN570X46"
-          strategy="beforeInteractive"
         />
-        <Script id="google-analytics" strategy="beforeInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-6NKN570X46');
-          `}
-        </Script>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-6NKN570X46');
+            `,
+          }}
+        />
       </head>
       <body className="min-h-screen flex flex-col bg-slate-900 text-slate-100 font-[family-name:var(--font-geist-sans)]">
         <GA4 />
