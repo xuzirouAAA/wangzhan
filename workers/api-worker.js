@@ -1,105 +1,134 @@
 /**
  * TikTok Downloader API Worker
  *
- * Standalone Cloudflare Worker that proxies TikTok URLs to TikWM
- * and returns both audio (MP3) and video (MP4) download data.
+ * Standalone Cloudflare Worker that extracts TikTok video/audio data
+ * by fetching the video page directly (no third-party API dependency).
  *
  * Deploy:
- *   wrangler deploy
- *
- * If you don't have wrangler set up, you can also paste this code
- * directly into the Cloudflare Dashboard → Workers & Pages → Create Worker.
+ *   cd workers && wrangler deploy
  */
 
-// ── CORS headers for browser access ──────────────────────────────
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
+function extractVideoId(url) {
+  const videoMatch = url.match(/\/video\/(\d+)/);
+  if (videoMatch) return videoMatch[1];
+  const shortMatch = url.match(/tiktok\.com\/(?:t|embed)\/([a-zA-Z0-9_]+)/);
+  if (shortMatch) return shortMatch[1];
+  return null;
+}
+
+async function resolveShortUrl(url) {
+  try {
+    const resp = await fetch(url, { method: "HEAD", redirect: "manual", signal: AbortSignal.timeout(5000) });
+    return resp.headers.get("location");
+  } catch {
+    return null;
+  }
+}
+
 export default {
   async fetch(request) {
-    // Handle CORS preflight
-    if (request.method === "OPTIONS") {
-      return new Response(null, { headers: corsHeaders });
-    }
-
+    if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
     if (request.method !== "POST") {
       return new Response(JSON.stringify({ error: "Method not allowed" }), {
-        status: 405,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+        status: 405, headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
     try {
       const { url: tiktokUrl } = await request.json();
-
       if (!tiktokUrl?.trim()) {
         return new Response(JSON.stringify({ error: "Missing TikTok URL" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
+          status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
 
-      // ── Forward to TikWM ──────────────────────────────────────
-      const formData = new FormData();
-      formData.append("url", tiktokUrl);
+      let targetUrl = tiktokUrl.trim();
+      if (targetUrl.includes("vm.tiktok.com") || targetUrl.includes("/t/")) {
+        const resolved = await resolveShortUrl(targetUrl);
+        if (resolved && resolved.includes("/video/")) targetUrl = resolved;
+      }
 
-      const apiRes = await fetch("https://www.tikwm.com/api/", {
-        method: "POST",
-        body: formData,
-        signal: AbortSignal.timeout(15_000),
+      const videoId = extractVideoId(targetUrl);
+      if (!videoId) {
+        return new Response(JSON.stringify({ error: "Could not extract video ID from URL" }), {
+          status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      const pageResp = await fetch(targetUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.9",
+          Referer: "https://www.tiktok.com/",
+          "Cache-Control": "no-cache",
+        },
+        signal: AbortSignal.timeout(10000),
       });
 
-      if (!apiRes.ok) {
-        return new Response(
-          JSON.stringify({ error: `TikWM returned HTTP ${apiRes.status}` }),
-          { status: 502, headers: { "Content-Type": "application/json", ...corsHeaders } },
-        );
+      if (!pageResp.ok) {
+        return new Response(JSON.stringify({ error: `TikTok returned HTTP ${pageResp.status}` }), {
+          status: 502, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
       }
 
-      const json = await apiRes.json();
+      const html = await pageResp.text();
 
-      if (json.code !== 0 || !json.data) {
-        return new Response(
-          JSON.stringify({ error: json.msg || "TikWM returned an error" }),
-          { status: 502, headers: { "Content-Type": "application/json", ...corsHeaders } },
-        );
+      // Extract SIGI_STATE
+      let sigiJson = null;
+      const sigiMatch = html.match(/window\.SIGI_STATE\s*=\s*(\{[\s\S]+?\});\s*<\/script>/);
+      if (sigiMatch) { try { sigiJson = JSON.parse(sigiMatch[1]); } catch {} }
+
+      if (!sigiJson) {
+        const initMatch = html.match(/window\.__INITIAL_STATE__\s*=\s*(\{[\s\S]+?\});\s*<\/script>/);
+        if (initMatch) { try { sigiJson = JSON.parse(initMatch[1]); } catch {} }
       }
 
-      const d = json.data;
+      if (!sigiJson) {
+        return new Response(JSON.stringify({ error: "Could not extract video data from TikTok page" }), {
+          status: 502, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
 
-      // ── Build response ─────────────────────────────────────────
-      const payload = {
-        title: d.title ?? "Unknown",
-        coverImg: d.cover ?? "",
-        originalMp3Url: d.music_info?.play ?? d.music ?? null,
-        duration: d.music_info?.duration ?? 30,
-        videoUrl: d.play ?? null,           // with watermark
-        videoUrlNoWm: d.wmplay ?? null,      // without watermark
-        videoHdUrl: d.hdplay ?? null,        // HD if available
-        videoSize: d.size ?? null,
-        videoSizeNoWm: d.wm_size ?? null,
-        videoHdSize: d.hd_size ?? null,
-      };
+      // Parse video info
+      let videoInfo = sigiJson.ItemModule?.[videoId] || sigiJson.Video?.[videoId] || sigiJson.video?.[videoId];
+      if (!videoInfo) {
+        const keys = [...Object.keys(sigiJson.ItemModule || {}), ...Object.keys(sigiJson.Video || {})];
+        if (keys.length > 0) videoInfo = sigiJson.ItemModule?.[keys[0]] || sigiJson.Video?.[keys[0]];
+      }
 
-      return new Response(JSON.stringify(payload), {
+      if (!videoInfo) {
+        return new Response(JSON.stringify({ error: "Video data not found in TikTok page" }), {
+          status: 502, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      const title = videoInfo.desc || videoInfo.title || "Unknown";
+      const coverImg = videoInfo.cover?.urlList?.[0] || videoInfo.video?.cover?.urlList?.[0] || "";
+      const musicUrl = videoInfo.music?.playUrl?.urlList?.[0] || videoInfo.music?.playUrl || "";
+      const duration = videoInfo.video?.duration || videoInfo.music?.duration || 30;
+      const videoUrl = videoInfo.video?.downloadAddr?.urlList?.[0] || videoInfo.video?.downloadAddr || videoInfo.video?.playAddr?.urlList?.[0] || "";
+      const videoNoWm = videoInfo.video?.playAddr?.urlList?.find?.(u => !u.includes("watermark") && !u.includes("wm=")) || videoInfo.video?.playAddr?.urlList?.[1] || "";
+
+      return new Response(JSON.stringify({
+        title, coverImg,
+        originalMp3Url: musicUrl || null,
+        duration: typeof duration === "number" ? duration : 30,
+        videoUrl: videoUrl || null,
+        videoUrlNoWm: videoNoWm || null,
+      }), {
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
-
-      if (err instanceof DOMException && err.name === "TimeoutError") {
-        return new Response(JSON.stringify({ error: "TikWM request timed out" }), {
-          status: 504,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      }
-
       return new Response(JSON.stringify({ error: message }), {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+        status: 500, headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
   },
