@@ -104,21 +104,19 @@ export default function RootLayout({
           }}
         />
 
-        {/* ====== Google Analytics (gtag.js) ====== */}
-        <script
-          async
+        {/* ====== Google Analytics (gtag.js) 官方最高优先级写法 ====== */}
+        <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-6NKN570X46"
+          strategy="beforeInteractive"
         />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-6NKN570X46');
-            `,
-          }}
-        />
+        <Script id="gtag-init" strategy="beforeInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-6NKN570X46');
+          `}
+        </Script>
       </head>
       <GA4 />
       <body className="min-h-screen flex flex-col bg-slate-900 text-slate-100 font-[family-name:var(--font-geist-sans)]">
