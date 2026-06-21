@@ -42,10 +42,7 @@ export const metadata: Metadata = {
     description:
       "Download TikTok audio as MP3 — paste, preview, trim & download. Free online tool.",
   },
-  verification: {
-    // Replace with your actual Google AdSense / Search Console ID
-    // google: "YOUR_VERIFICATION_CODE",
-  },
+  verification: {},
 };
 
 export default function RootLayout({
@@ -59,14 +56,6 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
       <head>
-        {/* ====== Google AdSense Script ====== */}
-        {/* Uncomment and add your AdSense client ID after approval */}
-        {/* <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_CLIENT_ID"
-          crossOrigin="anonymous"
-        /> */}
-
         {/* ====== FAQPage Structured Data for SEO ====== */}
         <script
           type="application/ld+json"
@@ -89,8 +78,7 @@ export default function RootLayout({
                   acceptedAnswer: {
                     "@type": "Answer",
                     text: "Yes, this TikTok audio downloader is completely free to use. There are no hidden charges, no registration requirements, and no daily limits on the number of downloads. We support the service through advertisements.",
-                  },
-                },
+                  },                },
                 {
                   "@type": "Question",
                   name: "Can I cut or trim the TikTok BGM online?",
@@ -104,12 +92,12 @@ export default function RootLayout({
           }}
         />
 
-        {/* ====== Google Analytics (gtag.js) 官方最高优先级写法 ====== */}
+        {/* ====== 强行在 head 里注入 Google 统计脚本 ====== */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-6NKN570X46"
           strategy="beforeInteractive"
         />
-        <Script id="gtag-init" strategy="beforeInteractive">
+        <Script id="google-analytics" strategy="beforeInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
@@ -118,8 +106,8 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <GA4 />
       <body className="min-h-screen flex flex-col bg-slate-900 text-slate-100 font-[family-name:var(--font-geist-sans)]">
+        <GA4 />
         {children}
       </body>
     </html>
