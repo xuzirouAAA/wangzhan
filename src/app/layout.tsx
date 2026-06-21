@@ -1,4 +1,3 @@
-import GA4 from "./components/GA4";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -15,33 +14,24 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "TikTok MP3 Downloader — Download TikTok Audio as MP3 Online Free",
-  description:
-    "Download TikTok audio as MP3 files online for free. Paste any TikTok video URL to extract, preview, trim, and download the original sound. No registration required.",
-  keywords: [
-    "tiktok mp3 downloader",
-    "download tiktok audio",
-    "tiktok sound downloader",
-    "tiktok music downloader",
-    "tiktok to mp3",
-    "tiktok audio extractor",
-    "free tiktok downloader",
-  ],
-  robots: { index: true, follow: true },
+  description: "Download TikTok audio as MP3 files online for free. Paste any TikTok video URL to extract, preview, trim, and download the original sound. No registration required.",
+  keywords: "tiktok mp3 downloader,download tiktok audio,tiktok sound downloader,tiktok music downloader,tiktok to mp3,tiktok audio extractor,free tiktok downloader",
+  robots: "index, follow",
   openGraph: {
     title: "TikTok MP3 Downloader — Download TikTok Audio as MP3 Online Free",
-    description:
-      "Paste any TikTok video URL to extract, preview, trim, and download the original audio track as MP3. Free & no registration.",
-    type: "website",
-    locale: "en_US",
+    description: "Paste any TikTok video URL to extract, preview, trim, and download the original audio track as MP3. Free & no registration.",
     siteName: "TikTok MP3 Downloader",
+    locale: "en_US",
+    type: "website",
   },
   twitter: {
     card: "summary_large_image",
     title: "TikTok MP3 Downloader",
-    description:
-      "Download TikTok audio as MP3 — paste, preview, trim & download. Free online tool.",
+    description: "Download TikTok audio as MP3 — paste, preview, trim & download. Free online tool.",
   },
-  verification: {},
+  icons: {
+    icon: "/favicon.ico?favicon.0x3dzn~oxb6tn.ico",
+  }
 };
 
 export default function RootLayout({
@@ -50,66 +40,46 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-    >
+    <html lang="en">
       <head>
-        {/* ====== FAQPage Structured Data for SEO ====== */}
+        {/* 结构化数据 (JSON-LD) */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "FAQPage",
-              mainEntity: [
+              "mainEntity": [
                 {
                   "@type": "Question",
-                  name: "How to download TikTok audio as MP3?",
-                  acceptedAnswer: {
+                  "name": "How to download TikTok audio as MP3?",
+                  "acceptedAnswer": {
                     "@type": "Answer",
-                    text: "Simply paste the TikTok video URL into the input field above and click 'Extract'. Our tool will fetch the audio track from the video. You can then preview the audio, trim it to your desired length, and download it as an MP3 file. No registration or software installation is required — everything works directly in your browser.",
-                  },
+                    "text": "Simply paste the TikTok video URL into the input field above and click 'Extract'. Our tool will fetch the audio track from the video. You can then preview the audio, trim it to your desired length, and download it as an MP3 file. No registration or software installation is required — everything works directly in your browser."
+                  }
                 },
                 {
                   "@type": "Question",
-                  name: "Is this TikTok sound downloader free to use?",
-                  acceptedAnswer: {
+                  "name": "Is this TikTok sound downloader free to use?",
+                  "acceptedAnswer": {
                     "@type": "Answer",
-                    text: "Yes, this TikTok audio downloader is completely free to use. There are no hidden charges, no registration requirements, and no daily limits on the number of downloads. We support the service through advertisements.",
-                  },
+                    "text": "Yes, this TikTok audio downloader is completely free to use. There are no hidden charges, no registration requirements, and no daily limits on the number of downloads. We support the service through advertisements."
+                  }
                 },
                 {
                   "@type": "Question",
-                  name: "Can I cut or trim the TikTok BGM online?",
-                  acceptedAnswer: {
+                  "name": "Can I cut or trim the TikTok BGM online?",
+                  "acceptedAnswer": {
                     "@type": "Answer",
-                    text: "Absolutely. After extracting the audio, you can use our built-in audio trimmer to select a specific portion of the track. Simply drag the start and end sliders to choose your desired segment, preview it, and download only the trimmed portion as an MP3 file.",
-                  },
-                },
-              ],
-            }),
-          }}
-        />
-
-        {/* ====== 强行使用原生纯 HTML 标签注入 Google 统计脚本 ====== */}
-        <script
-          async
-          src="https://www.googletagmanager.com/gtag/js?id=G-6NKN570X46"
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-6NKN570X46');
-            `,
+                    "text": "Absolutely. After extracting the audio, you can use our built-in audio trimmer to select a specific portion of the track. Simply drag the start and end sliders to choose your desired segment, preview it, and download only the trimmed portion as an MP3 file."
+                  }
+                }
+              ]
+            })
           }}
         />
       </head>
-      <body className="min-h-screen flex flex-col bg-slate-900 text-slate-100 font-[family-name:var(--font-geist-sans)]">
-        <GA4 />
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
       </body>
     </html>
