@@ -1,6 +1,6 @@
 /* ──────────────────────────────────────────────
    POST /api/extract
-   Proxies a TikTok URL to TikWM and returns parsed audio data.
+   Proxies a TikTok URL to TikWM and returns parsed audio + video data.
    Runs on Cloudflare Workers via Edge runtime.
    ────────────────────────────────────────────── */
 
@@ -14,6 +14,12 @@ interface TikWmData {
     play?: string;
     duration?: number;
   };
+  play?: string;     // video with watermark
+  wmplay?: string;   // video without watermark
+  hdplay?: string;   // HD video if available
+  size?: number;
+  wm_size?: number;
+  hd_size?: number;
 }
 
 interface TikWmResponse {
@@ -65,14 +71,34 @@ export async function POST(request: Request) {
     const originalMp3Url = data.music_info?.play ?? data.music ?? "";
     const duration = data.music_info?.duration ?? 30;
 
-    if (!originalMp3Url) {
+    // Video URLs and sizes (may be undefined if unavailable)
+    const videoUrl = data.play ?? null;          // with watermark
+    const videoUrlNoWm = data.wmplay ?? null;     // without watermark
+    const videoHdUrl = data.hdplay ?? null;       // HD if available
+    const videoSize = data.size ?? null;
+    const videoSizeNoWm = data.wm_size ?? null;
+    const videoHdSize = data.hd_size ?? null;
+
+    // At least one of audio or video must be present
+    if (!originalMp3Url && !videoUrl && !videoUrlNoWm) {
       return Response.json(
-        { error: "No audio URL found in the TikWM response" },
+        { error: "No media URL found in the TikWM response" },
         { status: 502 },
       );
     }
 
-    return Response.json({ title, coverImg, originalMp3Url, duration });
+    return Response.json({
+      title,
+      coverImg,
+      originalMp3Url,
+      duration,
+      videoUrl,
+      videoUrlNoWm,
+      videoHdUrl,
+      videoSize,
+      videoSizeNoWm,
+      videoHdSize,
+    });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Unknown error";
