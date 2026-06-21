@@ -42,35 +42,54 @@ export default function Home() {
     setResult(null);
     setTab("audio");
 
-    try {
-      const response = await fetch("/api/extract", {
-        method: "POST",
+    // Try endpoints in order: external Worker → internal API
+    const endpoints = [
+      {
+        url: "https://super-dew-9993.2207139559.workers.dev/",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: inputUrl.trim() }),
-      });
+      },
+      {
+        url: "/api/extract",
+        headers: { "Content-Type": "application/json" },
+      },
+    ];
 
-      if (!response.ok) {
-        const errBody = await response.json().catch(() => null);
-        throw new Error(errBody?.error || `Server responded with ${response.status}`);
+    let lastError: string | null = null;
+
+    for (const ep of endpoints) {
+      try {
+        const response = await fetch(ep.url, {
+          method: "POST",
+          headers: ep.headers,
+          body: JSON.stringify({ url: inputUrl.trim() }),
+        });
+
+        if (!response.ok) {
+          const errBody = await response.json().catch(() => null);
+          lastError = errBody?.error || `Server responded with ${response.status}`;
+          continue; // try next endpoint
+        }
+
+        const data = (await response.json()) as MediaData;
+
+        if (data && (data.originalMp3Url || data.videoUrl || data.videoUrlNoWm)) {
+          setResult(data);
+          setLoading(false);
+          return; // success — exit
+        } else {
+          lastError = "No media data found for this video.";
+          continue;
+        }
+      } catch (err) {
+        console.error(`Endpoint ${ep.url} failed:`, err);
+        lastError = "Something went wrong. Please verify the link or try again.";
+        continue;
       }
-
-      const data = (await response.json()) as MediaData;
-
-      if (data && (data.originalMp3Url || data.videoUrl || data.videoUrlNoWm)) {
-        setResult(data);
-      } else {
-        throw new Error("No media data found for this video.");
-      }
-    } catch (err) {
-      console.error(err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong. Please verify the link or try again.",
-      );
-    } finally {
-      setLoading(false);
     }
+
+    // All endpoints failed
+    setError(lastError);
+    setLoading(false);
   };
 
   const handlePaste = async () => {
