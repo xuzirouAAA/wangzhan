@@ -51,10 +51,10 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="256x256" type="image/x-icon" />
         {/* Google AdSense */}
         <script
-          async
+          async={true}
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7365417667581123"
-          crossorigin="anonymous"
-        ></script>
+          crossOrigin="anonymous"
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
