@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://fasttikmp3.com
+
+# Sitemaps
+Sitemap: https://fasttikmp3.com/sitemap.xml
